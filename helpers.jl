@@ -18,6 +18,8 @@ struct Instance
     V  # Variable capacity cost  
     T  # Transportation cost from i ∈ I to j ∈ J
     D  # Demand in location j ∈ J
+    b1 # first-stage cost budget
+    b2 # second-stage cost budget
     bigM  # BigM for capacity constraint
     D_average   # average demand
     D_deviation # max deviation
@@ -37,6 +39,9 @@ function generate_instance(TotalServers, TotalClients, TotalScenarios)
     V = [rand(1:10) for i in I]            # Capacity cost   
     loc_i = [(rand(), rand()) for i in I]  # Random 2D-coordinates for clients (coordinates are represented by a tuple)
     loc_j = [(rand(), rand()) for j in J]  # Random 2D-coordinates for servers
+
+    b1 = 500   # first-stage cost budget
+    b2 = 500  # second-stage cost budget
     
     # The transportation cost is the Euclidean distance between the server i and client j
     T = ceil.(10 .* [sqrt((loc_i[i][1]-loc_j[j][1])^2+(loc_i[i][2]-loc_j[j][2])^2) for i in I, j in J])
@@ -47,7 +52,7 @@ function generate_instance(TotalServers, TotalClients, TotalScenarios)
     max_D, index = findmax(D, dims=2)  # finds maximum among columns
     bigM = sum(max_D)                  # capacity big M
     
-    return Instance(I, J, S, N, P, O, V, T, D, bigM, D_average, D_deviation, loc_i, loc_j)
+    return Instance(I, J, S, N, P, O, V, T, D, b1, b2, bigM, D_average, D_deviation, loc_i, loc_j)
 end  
 
 function unroll_instance(instance::Instance)
@@ -60,11 +65,13 @@ function unroll_instance(instance::Instance)
     V = instance.V
     T = instance.T
     D = instance.D
+    b1 = instance.b1
+    b2 = instance.b2
     bigM = instance.bigM
     D_average = instance.D_average
     D_deviation = instance.D_deviation
 
-    return I, J, S, N, P, O, V, T, D, bigM, D_average, D_deviation
+    return I, J, S, N, P, O, V, T, D, b1, b2, bigM, D_average, D_deviation
 end
 
 function print_instance(inst)
@@ -72,6 +79,7 @@ function print_instance(inst)
     println("facility location cost = ", inst.O)           # Cost for locating facility
     println("capacity cost = ", inst.V)            # Capacity cost   
     println("transportation cost = ", inst.T)
+    println(" budget (1st & 2nd stage) = ", (inst.b1, inst.b2))
     println("demand = ", [[inst.D[j,s] for j in inst.J] for s in inst.S])
     
     return

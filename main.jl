@@ -1,66 +1,73 @@
 include("helpers.jl")
-include("gini.jl")
-include("mandell.jl")
+include("lorenz.jl")
+include("GMD.jl")
+
 using JuMP
 
 TotalFacilities = 2
-TotalClients = 4
-TotalScenarios = 4
+TotalClients    = 3
+TotalScenarios  = 3
 
-# Solving the full space problem for reference
+# randomly generate a problem instance
 instance = generate_instance(TotalFacilities, TotalClients, TotalScenarios)
 print_instance(instance)
 
-# Solving 2SSP
-mandell_model = generate_full_problem_mandell(instance)
-f = open("mandell_model.lp", "w")
-print(f, mandell_model)
-close(f)
-gini_model = generate_full_problem_gini(instance)
-f = open("gini_model.lp", "w")
-print(f, gini_model)
-close(f)
+# generate and solve GMD (Gini mean difference) model
+GMD_model = generate_full_problem_GMD(instance)
+optimize!(GMD_model)
 
-optimize!(mandell_model)
-optimize!(gini_model)
+# write to file
+# write_to_file(GMD_model, "GMD_model.lp")
 
-x_mandell = Int.(round.(value.(mandell_model[:x]).data))
-y_mandell = value.(mandell_model[:y])
-u_mandell = value.(mandell_model[:u])
-X_mandell = value.(mandell_model[:X])
-obj_mandell = objective_value(mandell_model)
+# generate and solve Lorenz-based Gini model
+lorenz_model = generate_full_problem_lorenz(instance)
+optimize!(lorenz_model)
 
-x_gini = Int.(round.(value.(gini_model[:x]).data))
-y_gini = value.(gini_model[:y])
-X_gini = value.(gini_model[:X])
-Oi_gini = value.(gini_model[:Oi])
-ut_gini = value.(gini_model[:Ut])
-p_gini = value.(gini_model[:p])
-Z_gini = value.(gini_model[:Z])
-obj_gini = objective_value(gini_model)
+# write to file
+# write_to_file(lorenz_model, "lorenz_model.lp")
 
-X_diff = round.(X_mandell .- X_gini, digits=3)
+# extract GMD solution
+x_GMD = Int.(round.(value.(GMD_model[:x]).data))
+y_GMD = value.(GMD_model[:y])
+u_GMD = value.(GMD_model[:u])
+X_GMD = value.(GMD_model[:X])
+ut_GMD = value.(GMD_model[:Ut])
+GMD = value.(GMD_model[:GMD])
+obj_GMD = objective_value(GMD_model)
 
-println("Mandell:")
-println("   x   = ", [x_mandell[i] for i in instance.I])
-println("   y   = ", [y_mandell[i] for i in instance.I])
-#println("   D   = ", [[instance.D[j,s] for j in instance.J] for s in instance.S])
-println("   X   = ", [[sum(X_mandell[j,i,s] for i in instance.I) for j in instance.J] for s in instance.S])
-println("   obj = ", obj_mandell)
+# extract lorenz-based solution
+x_lorenz = Int.(round.(value.(lorenz_model[:x]).data))
+y_lorenz = value.(lorenz_model[:y])
+X_lorenz = value.(lorenz_model[:X])
+Oi_lorenz = value.(lorenz_model[:Oi])
+ut_lorenz = value.(lorenz_model[:Ut])
+p_lorenz = value.(lorenz_model[:p])
+Z_lorenz = value.(lorenz_model[:Z])
+G = value.(lorenz_model[:G])
+obj_lorenz = objective_value(lorenz_model)
 
-println("Gini:")
-println("   x   = ", [x_gini[i] for i in instance.I])
-println("   y   = ", [y_gini[i] for i in instance.I])
-println("   X   = ", [[sum(X_gini[j,i,s] for i in instance.I) for j in instance.J] for s in instance.S])
-#println("   Oi   = ", [[Oi_gini[j,r,s] for r in instance.J for j in instance.J] for s in instance.S])
-#println("   p   = ", [[p_gini[j,s] for j in instance.J] for s in instance.S])
-#println("   Z   = ", [[Z_gini[r,s] for r in instance.J] for s in instance.S])
-#println("   ut   = ", [ut_gini[s] for s in instance.S])
-println("   obj = ", obj_gini)
+# calculate difference in X
+X_diff = round.(X_GMD .- X_lorenz, digits=3)
+
+# print
+
+println("GMD:")
+println("   x   = ", [x_GMD[i] for i in instance.I])
+println("   y   = ", [y_GMD[i] for i in instance.I])
+println("   X   = ", [[sum(X_GMD[j,i,s] for i in instance.I) for j in instance.J] for s in instance.S])
+println("   ut   = ", [ut_GMD[s] for s in instance.S])
+println("   GMD   = ", [GMD[s] for s in instance.S])
+println("   obj = ", obj_GMD)
+
+println("lorenz:")
+println("   x   = ", [x_lorenz[i] for i in instance.I])
+println("   y   = ", [y_lorenz[i] for i in instance.I])
+println("   X   = ", [[sum(X_lorenz[j,i,s] for i in instance.I) for j in instance.J] for s in instance.S])
+#println("   Oi   = ", [[Oi_lorenz[j,r,s] for r in instance.J for j in instance.J] for s in instance.S])
+#println("   p   = ", [[p_lorenz[j,s] for j in instance.J] for s in instance.S])
+#println("   Z   = ", [[Z_lorenz[r,s] for r in instance.J] for s in instance.S])
+println("   ut   = ", [ut_lorenz[s] for s in instance.S])
+println("   G   = ", [G[s] for s in instance.S])
+println("   obj = ", obj_lorenz)
 
 println("difference in X = ", [[sum(X_diff[j,i,s] for i in instance.I) for j in instance.J] for s in instance.S])
-
-# write_to_file(
-#     gini_model,
-#     "ginimodeeeellllll.lp"
-# )
