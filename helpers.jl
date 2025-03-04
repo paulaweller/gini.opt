@@ -40,7 +40,7 @@ function generate_instance(TotalServers, TotalClients, TotalScenarios)
     loc_i = [(rand(), rand()) for i in I]  # Random 2D-coordinates for clients (coordinates are represented by a tuple)
     loc_j = [(rand(), rand()) for j in J]  # Random 2D-coordinates for servers
 
-    b1 = 500   # first-stage cost budget
+    b1 = 250   # first-stage cost budget
     b2 = 500  # second-stage cost budget
     
     # The transportation cost is the Euclidean distance between the server i and client j

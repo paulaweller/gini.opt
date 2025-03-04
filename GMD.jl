@@ -11,7 +11,9 @@ function generate_full_problem_GMD(instance::Instance)
     # Decision variables
     @variable(m, x[I], Bin)     # 1 if facility is located at i ∈ I, 0 otherwise.
     @variable(m, y[I] >= 0)     # Capacity decided for facility i ∈ I
-    @variable(m, X[J,I,S])      # how much of j's demand is covered by i
+    @variable(m, X[J,I,S]>=0)      # how much of j's demand is covered by i
+    # @constraint(m, sum(X[2,i,1] for i in I) == 0.7380952380952381)
+    # @constraint(m, sum(X[3,i,1] for i in I) == 0.6666666666666666)
     
     # Expressions 
     @expression(m, u[j in J, s in S], D[j,s]/sum(D[j1,s] for j1 in J))  # demand of client j divided by total demand  
@@ -43,13 +45,16 @@ function generate_full_problem_GMD(instance::Instance)
     @constraint(m, [j1 in J, j2 in J[j1+1:end], s in S], diff[j1,j2,s] >= sum(u[j2,s]*X[j2,i,s] for i in I)-sum(u[j1,s]*X[j1,i,s] for i in I))
 
     # calculate GMD for retrieving the value later
-    @expression(m, GMD[s in S], 1/(2*mean_ut[s]*length(J)^2)*sum(diff[j1,j2,s] for j1 in J for j2 in (j1+1):length(J)))
+    @expression(m, GMD[s in S], 1/(mean_ut[s]*length(J)^2)*sum(diff[j1,j2,s] for j1 in J for j2 in (j1+1):length(J)))
 
     # objective function (expected value of Ut[s]*(1-GMD[s]), but algebraically simplified)
+
     Obje = @expression(m,
-        sum(P[s]*(sum(u[j,s]*X[j,i,s] for j in J for i in I)-1/(2*length(J))*sum(diff[j1,j2,s] for j1 in J for j2 in J[j1+1:end])) for s in S) 
+        sum(P[s]*(sum(u[j,s]*X[j,i,s] for j in J for i in I)-1/(length(J))*sum(diff[j1,j2,s] for j1 in J for j2 in J[j1+1:end])) for s in S) 
     )
     
+    # Obje = @expression(m, sum(P[s]*Ut[s]*(1-GMD[s]) for s in S))
+
     @objective(m, Max, Obje)
     
     return m  # Return the generated model

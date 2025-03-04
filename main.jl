@@ -5,8 +5,8 @@ include("GMD.jl")
 using JuMP
 
 TotalFacilities = 2
-TotalClients    = 3
-TotalScenarios  = 3
+TotalClients    = 4
+TotalScenarios  = 4
 
 # randomly generate a problem instance
 instance = generate_instance(TotalFacilities, TotalClients, TotalScenarios)
@@ -31,6 +31,7 @@ x_GMD = Int.(round.(value.(GMD_model[:x]).data))
 y_GMD = value.(GMD_model[:y])
 u_GMD = value.(GMD_model[:u])
 X_GMD = value.(GMD_model[:X])
+diff_GMD = value.(GMD_model[:diff])
 ut_GMD = value.(GMD_model[:Ut])
 GMD = value.(GMD_model[:GMD])
 obj_GMD = objective_value(GMD_model)
@@ -44,6 +45,7 @@ ut_lorenz = value.(lorenz_model[:Ut])
 p_lorenz = value.(lorenz_model[:p])
 Z_lorenz = value.(lorenz_model[:Z])
 G = value.(lorenz_model[:G])
+GMD_lorenz = value.(lorenz_model[:GMD])
 obj_lorenz = objective_value(lorenz_model)
 
 # calculate difference in X
@@ -55,6 +57,7 @@ println("GMD:")
 println("   x   = ", [x_GMD[i] for i in instance.I])
 println("   y   = ", [y_GMD[i] for i in instance.I])
 println("   X   = ", [[sum(X_GMD[j,i,s] for i in instance.I) for j in instance.J] for s in instance.S])
+println("   diff   = ", [[sum(diff_GMD[j1,j2,s] for j1 in instance.J for j2 in instance.J)] for s in instance.S])
 println("   ut   = ", [ut_GMD[s] for s in instance.S])
 println("   GMD   = ", [GMD[s] for s in instance.S])
 println("   obj = ", obj_GMD)
@@ -68,6 +71,7 @@ println("   X   = ", [[sum(X_lorenz[j,i,s] for i in instance.I) for j in instanc
 #println("   Z   = ", [[Z_lorenz[r,s] for r in instance.J] for s in instance.S])
 println("   ut   = ", [ut_lorenz[s] for s in instance.S])
 println("   G   = ", [G[s] for s in instance.S])
+println("   GMD   = ", [GMD_lorenz[s] for s in instance.S])
 println("   obj = ", obj_lorenz)
 
-println("difference in X = ", [[sum(X_diff[j,i,s] for i in instance.I) for j in instance.J] for s in instance.S])
+println("difference in X = ", [[X_diff[j,i,s] for i in instance.I for j in instance.J] for s in instance.S])

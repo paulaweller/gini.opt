@@ -12,7 +12,9 @@ function generate_full_problem_lorenz(instance::Instance)
     # Decision variables
     @variable(m, x[I], Bin)     # 1 if facility is located at i ∈ I, 0 otherwise.
     @variable(m, y[I] >= 0)     # Capacity decided for facility i ∈ I
-    @variable(m, X[J,I,S]>= 0)  # how much of j's demand is covered by i
+    @variable(m, X[J,I,S]>=0)  # how much of j's demand is covered by i
+    #@constraint(m, sum(X[2,i,1] for i in I) == 1.0)
+    # @constraint(m, sum(X[3,i,1] for i in I) >= 0.9)
 
     # Expressions
     @expression(m, u[j in J, s in S], D[j,s]/sum(D[j1,s] for j1 in J))  # demand of client j divided by total demand  
@@ -59,6 +61,15 @@ function generate_full_problem_lorenz(instance::Instance)
             Z[1,s] + sum( sum(Z[j1,s] for j1 in J[1:j-1]) + sum(Z[j1,s] for j1 in J[1:j]) for j in J[2:end])
             )
             )
+
+
+    # calculating GMD
+
+    @expression(m, diff[j1 in J, j2 in J, s in S], abs(sum(u[j1,s]*X[j1,i,s] for i in I)-sum(u[j2,s]*X[j2,i,s] for i in I)))  # absolute value of the difference in utility at j and j'
+    @expression(m, mean_ut[s in S], 1/length(J)*sum(u[j,s]*X[j,i,s] for i in I for j in J)) # mean utility
+
+    # calculate GMD for retrieving the value later
+    @expression(m, GMD[s in S], 1/(mean_ut[s]*length(J)^2)*sum(diff[j1,j2,s] for j1 in J for j2 in (j1+1):length(J)))
 
     # objective function (expected value of Ut[s]*(1-G[s]), but algebraically simplified)
     Obje = @expression(m,
